@@ -4,7 +4,6 @@ from langchain_community.vectorstores import Chroma
 
 load_dotenv()
 
-# Load the existing vectorstore from disk (no re-embedding needed)
 embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
 
 vectorstore = Chroma(
@@ -12,20 +11,18 @@ vectorstore = Chroma(
     embedding_function=embedding_model
 )
 
-print(f"Loaded vectorstore with {vectorstore._collection.count()} chunks\n")
-
-# Query it
 queries = [
     "what are the three container types?",
-    "when should I use Roaring Bitmaps over hash sets?",
-    "how does memory efficiency work?",
+    "what is the capital of France?",  # not in your docs
 ]
 
 for query in queries:
     print(f"🔍 Query: {query}")
-    results = vectorstore.similarity_search(query, k=2)  # top 2 chunks 
     
-    for i, doc in enumerate(results):
-        print(f"\n  Result {i+1}:")
-        print(f"  {doc.page_content[:300]}")
+    # similarity_search_with_score returns (doc, score) tuples
+    results = vectorstore.similarity_search_with_score(query, k=3)
+    
+    for doc, score in results:
+        print(f"\n  Score: {score:.4f}")
+        print(f"  Content: {doc.page_content[:200]}")
     print("\n" + "—"*60 + "\n")
