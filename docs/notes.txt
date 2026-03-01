@@ -1,121 +1,89 @@
-I was reading Google’s report- “Procella: Unifying serving and analytical data at YouTube”, which solves some very important Data Engineering problems for YouTube-
+I was reading Google's report- "Procella: Unifying serving and analytical data at YouTube", which solves some very important Data Engineering problems for YouTube.
 
 Large organizations like YouTube are dealing with exploding data volume and increasing demand for data driven applications. Broadly, these can be categorized as: reporting and dashboarding, embedded statistics in pages, time-series monitoring, and ad-hoc analysis. Typically, organizations build specialized infrastructure for each of these use cases. This, however, creates silos of data and processing, and results in a complex, expensive, and harder to maintain infrastructure. At YouTube, we solved this problem by building a new SQL query engine — Procella. Procella implements a super-set of capabilities required to address all of the four use cases above, with high scale and performance, in a single product. Today, Procella serves hundreds of billions of queries per day across all four workloads at YouTube and several other Google product areas.
 
-While reading it, an idea that I’d never heard of stood out to me: Roaring Bitmaps. They were able to use it to reduce their latencies by 500 orders of magnitude (that’s so large that I’d buy it if it was a typo)-
+While reading it, an idea that I'd never heard of stood out to me: Roaring Bitmaps. They were able to use it to reduce their latencies by 500 orders of magnitude.
 
-By storing these indices as Roaring bitmaps [10] we are able to easily evaluate typical boolean filters (i.e. ‘WHERE 123 in ArrayOfExperiments OR 456 in ArrayOfExperiments’) efficiently, without having to go through the normal evaluation pathway. In current production use cases we have found that experiment analysis queries have end to end latencies reduced by ∼ 500x orders of magnitude when we apply this technique.
+By storing these indices as Roaring bitmaps we are able to easily evaluate typical boolean filters (i.e. 'WHERE 123 in ArrayOfExperiments OR 456 in ArrayOfExperiments') efficiently, without having to go through the normal evaluation pathway. In current production use cases we have found that experiment analysis queries have end to end latencies reduced by ~500x orders of magnitude when we apply this technique.
 
+This is the quote. I'm not sure what they meant here, and unfortunately, I couldn't find data on the experiment referenced. So, I thought this would be a good time to learn about Roaring Bitmaps. Turns out Roaring Bitmaps are one of the most impactful data structures used by organizations today, so knowing them is key for modern software engineering. The following article will be my overview of the basics of roaring bitmaps and how they're used by organizations.
 
-This is the quote. I’m not sure what they meant here, and unfortunately, I couldn't find data on the experiment referenced.
-So, I thought this would be a good time to learn about Roaring Bitmaps. Turns out Roaring Bitmaps are one of the most impactful data structures used by organizations today, so knowing them is key for modern software engineering. The following article will be my overview of the basics of roaring bitmaps and how they’re used by organizations.
-
-Memory in use reported by Redis (matches RSS of the redis-server process): 129.48G.
-
-With the same dataset migrated to standalone bitmapist server under the same load: RSS reported at about 300M.
-
--These numbers are unreal. Source
-
-If you like this article, please consider becoming a premium subscriber to my newsletter AI Made Simple so I can spend more time researching and sharing information on truly important topics. We have a pay-what-you-can model, which lets you support my efforts to bring high-quality technical Education to everyone for less than the price of a cup of coffee.
-
-
-Subscribe to Artificial Intelligence Made Simple
-Covering the implications of important ideas in AI from all angles- technical, social, and economic. Read in over 180…
-artificialintelligencemadesimple.substack.com
-
-I provide various consulting and advisory services. If you‘d like to explore how we can work together, reach out to me through any of my socials over here or reply to this email.
-
-I provide various consulting and advisory services. If you‘d like to explore how we can work together, reach out to me through any of my socials over here or reply to this email.
+Memory in use reported by Redis (matches RSS of the redis-server process): 129.48G. With the same dataset migrated to standalone bitmapist server under the same load: RSS reported at about 300M.
 
 Introduction: Why do Roaring Bitmaps Exist?
-Imagine you’re tasked with storing a set of user IDs who clicked a particular ad on a website. With millions of users, storing these IDs as a simple list or array quickly becomes inefficient. So, what data structures can we use to store and process large sets of 32-bit integers efficiently?
+Imagine you're tasked with storing a set of user IDs who clicked a particular ad on a website. With millions of users, storing these IDs as a simple list or array quickly becomes inefficient. So, what data structures can we use to store and process large sets of 32-bit integers efficiently?
 
 Bitmaps
-A bitmap uses a single bit to represent the presence (1) or absence (0) of an element in a set. For instance, to store the set {1, 3, 5} within a universe of 0 to 5, you’d use the bitmap “101010”.
+A bitmap uses a single bit to represent the presence (1) or absence (0) of an element in a set. For instance, to store the set {1, 3, 5} within a universe of 0 to 5, you'd use the bitmap "101010".
 
-
-Source
 However, standard bitmaps have limitations:
 
 Sparsity Issues: If your data is sparse (large gaps between values), a bitmap can be mostly zeros, wasting space. Those of you familiar with high-dimensional spaces will recognize how common sparse representations can be when doing any Data Analysis.
-Press enter or click to view image in full size
 
-Source
 Set Operation Challenges: While bitwise operations can perform set operations, they become less efficient for large, sparse sets.
+
 This is where Roaring Bitmaps come in.
 
 Enter the Roaring Bitmaps
-Roaring Bitmaps tackle these issues by offering a compressed and optimized representation of the bitmap, leading to significant space savings and faster operations-
+Roaring Bitmaps tackle these issues by offering a compressed and optimized representation of the bitmap, leading to significant space savings and faster operations.
 
-Press enter or click to view image in full size
-
-Better bitmap performance with Roaring bitmaps. This is the original paper, which we will a few times.
-Roaring Bitmaps are built on a hierarchical structure that adapts to varying data distributions. Let’s break down their key components:
+Roaring Bitmaps are built on a hierarchical structure that adapts to varying data distributions. Let's break down their key components:
 
 Efficiency Overview
 As you study the Roaring Bitmaps Data-structure, it is helpful to observe that their efficiency comes from the implementation choices:
 
 1. Memory Layout
-
 Contiguous memory allocation for containers when possible.
 Careful alignment of data structures for optimal memory access.
-2. Optimization Techniques
 
+2. Optimization Techniques
 Lazy operations: Deferring computations until results are needed.
 Container conversions: Dynamically switching between container types based on density.
+
 Two-Level Structure
-Roaring bitmaps store 32-bit integers in a compact and efficient two-level indexing data structure. Dense chunks are stored using bitmaps; sparse chunks use packed arrays of 16-bit integers. In our example ({0, 62, 124, . . .}), it would use only ≈ 16 bits/integer, half of Concise’s memory usage. Moreover, on the synthetic-data test proposed by Colantonio and Di Pietro [1], it is at least four times faster than WAH and Concise. In some instances, it can be hundreds of times faster
+Roaring bitmaps store 32-bit integers in a compact and efficient two-level indexing data structure. Dense chunks are stored using bitmaps; sparse chunks use packed arrays of 16-bit integers. In our example ({0, 62, 124, ...}), it would use only ~16 bits/integer, half of Concise's memory usage. Moreover, on the synthetic-data test proposed by Colantonio and Di Pietro, it is at least four times faster than WAH and Concise. In some instances, it can be hundreds of times faster.
 
 Roaring Bitmaps use a two-level structure to organize data efficiently:
 
-Top Level: A dynamic array of 16-bit integer keys, each corresponding to a chunk of 2¹⁶ integers.
+Top Level: A dynamic array of 16-bit integer keys, each corresponding to a chunk of 2^16 integers.
 Second Level: For each 16-bit chunk, one of three container types is used to store the lower 16 bits of the integers in that range.
-Roaring Bitmaps divide the input integer range into fixed-size containers, each responsible for a specific range of values. With a container size of 2¹⁶, the first container manages values 0–65535, the second 65536–131071, and so on.
 
+Roaring Bitmaps divide the input integer range into fixed-size containers, each responsible for a specific range of values. With a container size of 2^16, the first container manages values 0–65535, the second 65536–131071, and so on.
 
 Container Types: Choosing the Right Tool
 Roaring Bitmaps employ three different container types, chosen dynamically based on the data distribution within each container to ensure optimal storage:
 
-Get Devansh’s stories in your inbox
-Join Medium for free to get updates from this writer.
-
-Enter your email
-Subscribe
 a) Array Container
-
-Structure: A sorted array storing the individual integer values present within the container’s range.
+Structure: A sorted array storing the individual integer values present within the container's range.
 Ideal for: Sparse ranges with fewer than 4096 elements.
 Example: The set {1, 10, 1000} within the container 0–65535.
-b) Bitmap Container
 
-Structure: A traditional bitmap, using one bit per possible value within the container’s range.
+b) Bitmap Container
+Structure: A traditional bitmap, using one bit per possible value within the container's range.
 Ideal for: Dense ranges with a significant number of elements.
 Example: A set with 30,000 evenly distributed values between 0 and 65535.
-c) Run Container
 
+c) Run Container
 Structure: Stores consecutive sequences of values using only the start and length of the run.
-Ideal for: Long consecutive sequences within the container’s range.
+Ideal for: Long consecutive sequences within the container's range.
 Example: The set {10, 11, 12, 13, 14, 15} is efficiently stored as a single run (start=10, length=6).
-This adaptive container selection is key to Roaring Bitmaps’ efficiency. They dynamically adjust their structure to the data, ensuring optimal storage and operation speed. Let’s look into how we can perform operations on Roaring Bitmaps (this is the backbone for what YouTube needed after all).
+
+This adaptive container selection is key to Roaring Bitmaps' efficiency. They dynamically adjust their structure to the data, ensuring optimal storage and operation speed.
 
 Operations and Efficiency for Roaring Bitmaps
 The true power of Roaring Bitmaps shines when performing set operations. Their structure allows for highly optimized algorithms:
 
-Press enter or click to view image in full size
-
-Times and compression measurements: average of 100 runs
 1. Basic Operations
 Insertion: The appropriate container is identified, and the element is inserted according to the container type. If an insertion makes a container inefficient (e.g., exceeding the size limit of an array container), the container is converted to a more suitable type.
 Deletion: Similar to insertion, the element is removed from the corresponding container, potentially triggering a container type conversion if needed.
 Membership Testing: The container is identified, and the presence of the element is checked. This search is highly efficient due to the sorted nature of array containers and the direct addressing capability of bitmaps.
+
 2. Advanced Set Operations
-AND (Intersection): Performed container by container. Only matching container types need to be compared, leading to high efficiency. A lot of software teams often overlooks these kinds of lazy operations, but they can be very useful for keeping costs down (and are generally fairly easy to figure out once you understand your domain/process).
-OR (Union): Two Roaring Bitmaps are combined by performing unions on corresponding containers. The resulting container type is chosen based on the union’s characteristics.
+AND (Intersection): Performed container by container. Only matching container types need to be compared, leading to high efficiency. A lot of software teams often overlooks these kinds of lazy operations, but they can be very useful for keeping costs down.
+OR (Union): Two Roaring Bitmaps are combined by performing unions on corresponding containers. The resulting container type is chosen based on the union's characteristics.
 XOR (Symmetric Difference): Similar to union, but keeping only elements that are in one set but not the other.
 NOT (Complement): Inverts a bitmap, efficiently performed at the container level.
-Press enter or click to view image in full size
 
-Optimized algorithm to compute the union of many roaring bitmaps
 Applications for Roaring Bitmaps
 The efficiency and versatility of Roaring Bitmaps have led to their widespread adoption in diverse domains:
 
@@ -123,73 +91,43 @@ The efficiency and versatility of Roaring Bitmaps have led to their widespread a
 Columnar Databases: Efficiently store values within a column, leading to faster query processing.
 Index Compression: Significantly reduce the storage footprint of indexes, improving query performance.
 Distinct Count Estimation: Provide fast approximations for the number of unique values, vital for data analysis and query optimization.
+
 2. Search Engines
 Inverted Indexes: Represent the set of documents containing a specific term, enabling fast search result retrieval.
-Press enter or click to view image in full size
-
-Source
 Faceted Search: Efficiently handle filtering of search results based on multiple criteria, providing a smooth user experience.
+
 3. Data Analytics
 Log analysis: Identify users or sessions exhibiting specific activity patterns, crucial for understanding user behavior.
 Recommendation systems: Find users with similar preferences by performing set operations on their item interaction histories.
+
 4. Other Applications
 Bioinformatics: Analyze and compare large genomic datasets.
 Network Security: Track network activity and identify anomalies.
 Machine Learning: Represent features and perform fast similarity comparisons.
-There are lots of libraries in the major programming languages, so make sure you play around with them to check out the implementation.
 
 Best Practices and Optimization Tips
 To get the most out of Roaring Bitmaps:
 
-Use bulk operations: Add or remove multiple elements at once. This can reduce the additional overhead of loading and unloading memory. In my breakdown of the phenomenal report, “Scaling TensorFlow to 300 million predictions per second”, we saw that using Larger Batch sizes enabled the team to halve their computational costs.
+Use bulk operations: Add or remove multiple elements at once. This can reduce the additional overhead of loading and unloading memory.
 Leverage run containers: For data with long runs of consecutive integers, run containers can significantly reduce memory usage.
 Consider cardinality: For very sparse data, go with traditional hash sets.
 Profile your usage: The effectiveness of Roaring Bitmaps can vary based on data characteristics. Profile your specific use case.
-Use native operations: Go with built-in operations over manual loops for better performance. This is something I can be very bad with, so so I’m going to throw this on a bunch of sticky notes around my apartment.
+Use native operations: Go with built-in operations over manual loops for better performance.
+
 Advantages and Disadvantages
+
 Advantages
 Exceptional Space Efficiency: Roaring Bitmaps often achieve significant space savings, especially for sparse and clustered data.
 Lightning-Fast Set Operations: Their structure enables rapid intersection, union, and difference operations, outperforming traditional methods.
 Wide Applicability: Their versatility allows them to be employed in diverse domains and tasks.
 Adaptive Structure: The use of different container types allows Roaring Bitmaps to efficiently handle various data distributions.
-Disadvantages:
+
+Disadvantages
 Memory Overhead: While generally efficient, the container management can introduce some memory overhead.
 Not Universally Ideal: Performance can degrade for data with uniform distribution, where the benefits of compression diminish.
-32-bit Integer Limitation: Roaring Bitmaps are designed for 32-bit integers. For other data types, you’ll need to map your data to this range.
+32-bit Integer Limitation: Roaring Bitmaps are designed for 32-bit integers. For other data types, you'll need to map your data to this range.
 Complexity: The hybrid approach, while powerful, adds complexity compared to simpler bitmap implementations.
+
 Roaring Bitmaps have proven to be a powerful data structure for managing large sets of integers. Their ability to compress data while enabling fast set operations makes them indispensable in various applications, from databases and search engines to data analytics and machine learning.
-
-If you liked this article and wish to share it, please refer to the following guidelines.
-
-That is it for this piece. I appreciate your time. As always, if you’re interested in working with me or checking out my other work, my links will be at the end of this email/post. And if you found value in this write-up, I would appreciate you sharing it with more people. It is word-of-mouth referrals like yours that help me grow. You can share your testimonials over here.
-
-Press enter or click to view image in full size
-
-I put a lot of work into writing this newsletter. To do so, I rely on you for support. If a few more people choose to become paid subscribers, the Chocolate Milk Cult can continue to provide high-quality and accessible education and opportunities to anyone who needs it. If you think this mission is worth contributing to, please consider a premium subscription. You can do so for less than the cost of a Netflix Subscription.
-
-Upgrade to paid
-
-Many companies have a learning budget, and you can expense your subscription through that budget. You can use the following for an email template.
-
-I regularly share mini-updates on what I read on the Microblogging sites X(https://twitter.com/Machine01776819), Threads(https://www.threads.net/@iseethings404), and TikTok(https://www.tiktok.com/@devansh_ai_made_simple)- so follow me there if you’re interested in keeping up with my learnings.
-
-Reach out to me
-Use the links below to check out my other content, learn more about tutoring, reach out to me about projects, or just to say hi.
-
-Small Snippets about Tech, AI and Machine Learning over here
-
-AI Newsletter- https://artificialintelligencemadesimple.substack.com/
-
-My grandma’s favorite Tech Newsletter- https://codinginterviewsmadesimple.substack.com/
-
-Check out my other articles on Medium. : https://rb.gy/zn1aiu
-
-My YouTube: https://rb.gy/88iwdd
-
-Reach out to me on LinkedIn. Let’s connect: https://rb.gy/m5ok2y
-
-My Instagram: https://rb.gy/gmvuy9
-
-My Twitter: https://twitter.com/Machine01776819
 
 As data volumes continue to grow and the need for efficient processing intensifies, Roaring Bitmaps are well-positioned to play an even more significant role in the future of data-intensive applications. Ongoing research into new compression techniques, hardware acceleration, and further optimizations ensures that Roaring Bitmaps will continue to evolve and remain a vital tool in our increasingly data-driven world.

@@ -11,8 +11,8 @@ loader = TextLoader("docs/notes.txt")
 documents = loader.load()
 
 splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=50,
+    chunk_size=1000,
+    chunk_overlap=200,
 )
 chunks = splitter.split_documents(documents)
 
