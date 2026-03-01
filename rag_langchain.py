@@ -54,8 +54,10 @@ chain = RetrievalQA.from_chain_type(
 )
 
 questions = [
-    "what are the three container types in Roaring Bitmaps?",
-    "what are the advantages AND disadvantages of Roaring Bitmaps?",
+    "where did I graduate from?",
+    "what is my first company?",
+    "what is my flight number?",
+    "when is the flight?",
     "what is the capital of France?",
 ]
 
@@ -69,9 +71,11 @@ for q in questions:
         print("\n📄 Sources used:")
         seen = set()
         for doc in result["source_documents"]:
-            preview = doc.page_content[:100].replace("\n", " ")
-            if preview not in seen:
-                seen.add(preview)
-                print(f"  → {preview}...")
+            source = doc.metadata.get("source", "unknown")
+            preview = doc.page_content[:80].replace("\n", " ")
+            key = f"{source}:{preview}"
+            if key not in seen:
+                seen.add(key)
+                print(f"  → [{source}] {preview}...")
 
     print("—" * 60)
