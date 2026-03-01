@@ -19,7 +19,7 @@ retriever = vectorstore.as_retriever(
     search_kwargs={"k": 5}
 )
 
-# Custom prompt — same logic as your manual system prompt
+# Custom prompt
 prompt_template = """You are a personal knowledge assistant.
 Your job is to answer questions based strictly on the provided context.
 
@@ -42,26 +42,36 @@ prompt = PromptTemplate(
     input_variables=["context", "question"]
 )
 
-# Build the chain
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
+# return_source_documents=True is the key change
 chain = RetrievalQA.from_chain_type(
     llm=llm,
-    chain_type="stuff",  # "stuff" = stuff all chunks into prompt
+    chain_type="stuff",
     retriever=retriever,
+    return_source_documents=True,
     chain_type_kwargs={"prompt": prompt}
 )
 
-# Test it
 questions = [
     "what are the three container types in Roaring Bitmaps?",
-    "give me a summary of what Roaring Bitmaps are",
     "what are the advantages AND disadvantages of Roaring Bitmaps?",
     "what is the capital of France?",
 ]
 
 for q in questions:
     print(f"\n🔍 Query: {q}")
-    answer = chain.invoke({"query": q})
-    print(f"🤖 {answer['result']}")
+    result = chain.invoke({"query": q})
+
+    print(f"🤖 {result['result']}")
+
+    if result.get("source_documents"):
+        print("\n📄 Sources used:")
+        seen = set()
+        for doc in result["source_documents"]:
+            preview = doc.page_content[:100].replace("\n", " ")
+            if preview not in seen:
+                seen.add(preview)
+                print(f"  → {preview}...")
+
     print("—" * 60)
