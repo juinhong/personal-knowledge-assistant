@@ -28,6 +28,7 @@ Rules:
 - If the answer is not in the context, say "I don't have that information in my knowledge base."
 - Be concise — get to the point in 1-3 sentences unless a longer answer is clearly needed.
 - If the question asks for a list, respond with a clean numbered or bulleted list.
+- If the question is ambiguous or unclear, say "Could you clarify what you mean by [unclear part]?"
 - If you're unsure, say so — don't guess.
 
 Context:
@@ -53,29 +54,44 @@ chain = RetrievalQA.from_chain_type(
     chain_type_kwargs={"prompt": prompt}
 )
 
+
+def ask(query):
+    print(f"\n🔍 Query: {query}")
+
+    # Manually check scores instead of using threshold
+    docs_and_scores = vectorstore.similarity_search_with_score(query, k=5)
+
+    # Filter — remember lower score = more similar for ChromaDB distance
+    relevant_docs = [doc for doc, score in docs_and_scores if score < 1.5]
+
+    if not relevant_docs:
+        print("🤖 I don't have any relevant information about that in my knowledge base.")
+        print("—" * 60)
+        return
+
+    result = chain.invoke({"query": query})
+    print(f"🤖 {result['result']}")
+
+    print("\n📄 Sources used:")
+    seen = set()
+    for doc in result["source_documents"]:
+        source = doc.metadata.get("source", "unknown")
+        preview = doc.page_content[:80].replace("\n", " ")
+        key = f"{source}:{preview}"
+        if key not in seen:
+            seen.add(key)
+            print(f"  → [{source}] {preview}...")
+
+    print("—" * 60)
+
+
 questions = [
-    "where did I graduate from?",
-    "what is my first company?",
-    "what is my flight number?",
-    "when is the flight?",
-    "what is the capital of France?",
+    "what are the three container types in Roaring Bitmaps?",  # normal
+    "what is the capital of France?",  # no relevant docs
+    "tell me more",  # ambiguous
+    "summarize everything",  # vague
+    "what did they say about performance?",  # vague reference
 ]
 
 for q in questions:
-    print(f"\n🔍 Query: {q}")
-    result = chain.invoke({"query": q})
-
-    print(f"🤖 {result['result']}")
-
-    if result.get("source_documents"):
-        print("\n📄 Sources used:")
-        seen = set()
-        for doc in result["source_documents"]:
-            source = doc.metadata.get("source", "unknown")
-            preview = doc.page_content[:80].replace("\n", " ")
-            key = f"{source}:{preview}"
-            if key not in seen:
-                seen.add(key)
-                print(f"  → [{source}] {preview}...")
-
-    print("—" * 60)
+    ask(q)

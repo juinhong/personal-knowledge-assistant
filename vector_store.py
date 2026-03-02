@@ -10,8 +10,8 @@ load_dotenv()
 # Load ALL files from docs/ folder at once
 loader = DirectoryLoader(
     "docs/",
-    glob="**/*.pdf",  # change to **/*.pdf for PDFs
-    loader_cls=PyPDFLoader
+    glob="**/*.txt",  # change to **/*.pdf for PDFs
+    loader_cls=TextLoader,
 )
 
 documents = loader.load()
