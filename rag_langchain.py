@@ -1,8 +1,6 @@
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
 
 load_dotenv()
 
@@ -13,85 +11,85 @@ vectorstore = Chroma(
     embedding_function=embedding_model
 )
 
-# Build retriever
-retriever = vectorstore.as_retriever(
-    search_type="similarity",
-    search_kwargs={"k": 5}
-)
-
-# Custom prompt
-prompt_template = """You are a personal knowledge assistant.
-Your job is to answer questions based strictly on the provided context.
-
-Rules:
-- Answer ONLY using the context below. Never use outside knowledge.
-- If the answer is not in the context, say "I don't have that information in my knowledge base."
-- Be concise — get to the point in 1-3 sentences unless a longer answer is clearly needed.
-- If the question asks for a list, respond with a clean numbered or bulleted list.
-- If the question is ambiguous or unclear, say "Could you clarify what you mean by [unclear part]?"
-- If you're unsure, say so — don't guess.
-
-Context:
-{context}
-
-Question: {question}
-
-Answer:"""
-
-prompt = PromptTemplate(
-    template=prompt_template,
-    input_variables=["context", "question"]
-)
-
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-# return_source_documents=True is the key change
-chain = RetrievalQA.from_chain_type(
-    llm=llm,
-    chain_type="stuff",
-    retriever=retriever,
-    return_source_documents=True,
-    chain_type_kwargs={"prompt": prompt}
-)
+# Manual memory — same pattern as Session 2.4
+chat_history = []
+
+
+def reformulate_query(query, chat_history):
+    # No history yet — use query as-is
+    if not chat_history:
+        return query
+
+    # Ask GPT to rewrite the question with full context
+    history_text = "\n".join([
+        f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+        for m in chat_history[-4:]  # last 2 exchanges only
+    ])
+
+    reformulation_prompt = f"""Given this conversation history:
+{history_text}
+
+Rewrite this follow-up question to be fully self-contained and specific,
+so it can be understood without the conversation history.
+Return ONLY the rewritten question, nothing else.
+
+Follow-up question: {query}"""
+
+    response = llm.invoke([{"role": "user", "content": reformulation_prompt}])
+    reformulated = response.content.strip()
+    print(f"🔄 Reformulated: {reformulated}")
+    return reformulated
 
 
 def ask(query):
-    print(f"\n🔍 Query: {query}")
+    print(f"\n👤 {query}")
 
-    # Manually check scores instead of using threshold
-    docs_and_scores = vectorstore.similarity_search_with_score(query, k=5)
+    # Reformulate query using chat history before retrieval
+    search_query = reformulate_query(query, chat_history)
 
-    # Filter — remember lower score = more similar for ChromaDB distance
-    relevant_docs = [doc for doc, score in docs_and_scores if score < 1.5]
+    # Use reformulated query for retrieval
+    docs_and_scores = vectorstore.similarity_search_with_score(search_query, k=5)
+    relevant = [doc for doc, score in docs_and_scores if score < 1.5]
 
-    if not relevant_docs:
+    if not relevant:
         print("🤖 I don't have any relevant information about that in my knowledge base.")
-        print("—" * 60)
         return
 
-    result = chain.invoke({"query": query})
-    print(f"🤖 {result['result']}")
+    context = "\n\n".join([doc.page_content for doc in relevant])
 
-    print("\n📄 Sources used:")
+    system_prompt = f"""You are a personal knowledge assistant.
+Answer the user's question using ONLY the context below.
+If the answer is not in the context, say "I don't have that information."
+Be concise and precise.
+
+Context:
+{context}"""
+
+    messages = [{"role": "system", "content": system_prompt}]
+    messages.extend(chat_history)
+    messages.append({"role": "user", "content": query})
+
+    response = llm.invoke(messages)
+    answer = response.content
+
+    chat_history.append({"role": "user", "content": query})
+    chat_history.append({"role": "assistant", "content": answer})
+
+    print(f"🤖 {answer}")
+
+    print("\n📄 Sources:")
     seen = set()
-    for doc in result["source_documents"]:
-        source = doc.metadata.get("source", "unknown")
+    for doc in relevant:
         preview = doc.page_content[:80].replace("\n", " ")
-        key = f"{source}:{preview}"
-        if key not in seen:
-            seen.add(key)
-            print(f"  → [{source}] {preview}...")
+        if preview not in seen:
+            seen.add(preview)
+            print(f"  → {preview}...")
 
-    print("—" * 60)
-
-
-questions = [
-    "what are the three container types in Roaring Bitmaps?",  # normal
-    "what is the capital of France?",  # no relevant docs
-    "tell me more",  # ambiguous
-    "summarize everything",  # vague
-    "what did they say about performance?",  # vague reference
-]
-
-for q in questions:
-    ask(q)
+# Test conversation
+print("=" * 60)
+ask("what are the three container types in Roaring Bitmaps?")
+ask("which one is best for sparse data?")
+ask("and what about dense data?")
+ask("summarize what we just discussed")
