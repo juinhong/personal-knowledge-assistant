@@ -17,6 +17,29 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 chat_history = []
 
 
+def summarize_history(chat_history):
+    if not chat_history:
+        return []
+
+    history_text = "\n".join([
+        f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+        for m in chat_history
+    ])
+
+    summary_prompt = f"""Summarize this conversation concisely in 3-5 sentences.
+Capture the key topics discussed and important answers given.
+Return ONLY the summary, nothing else.
+
+Conversation:
+{history_text}"""
+
+    response = llm.invoke([{"role": "user", "content": summary_prompt}])
+    summary = response.content.strip()
+
+    # Replace full history with single summary message
+    return [{"role": "system", "content": f"Previous conversation summary: {summary}"}]
+
+
 def reformulate_query(query, chat_history):
     # No history yet — use query as-is
     if not chat_history:
@@ -44,7 +67,15 @@ Follow-up question: {query}"""
 
 
 def ask(query):
+    global chat_history
+
     print(f"\n👤 {query}")
+
+    # Summarize if history gets long
+    if len(chat_history) >= 6:
+        print("📝 Summarizing conversation history...")
+        chat_history = summarize_history(chat_history)
+        print(f"✅ Compressed to 1 summary message\n")
 
     # Reformulate query using chat history before retrieval
     search_query = reformulate_query(query, chat_history)
