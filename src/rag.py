@@ -4,6 +4,7 @@ rag.py — Full RAG pipeline with memory and query reformulation.
 
 from langchain_openai import ChatOpenAI
 from src.retriever import retrieve, format_sources
+import tiktoken
 
 LLM_MODEL = "gpt-4o-mini"
 SYSTEM_PROMPT_TEMPLATE = """You are a personal knowledge assistant.
@@ -21,6 +22,17 @@ class RAGPipeline:
         self.vectorstore = vectorstore
         self.llm = ChatOpenAI(model=LLM_MODEL, temperature=0)
         self.chat_history = []
+
+    # Add this at the top of RAGPipeline class
+    def _count_tokens(self, messages: list) -> int:
+        """Count total tokens in a messages list."""
+        encoder = tiktoken.encoding_for_model("gpt-4o-mini")
+        total = 0
+        for message in messages:
+            # Every message has ~4 token overhead
+            total += 4
+            total += len(encoder.encode(message["content"]))
+        return total
 
     def _reformulate_query(self, query: str) -> str:
         """Rewrite follow-up questions to be self-contained using chat history."""
@@ -94,6 +106,14 @@ Conversation:
         messages = [{"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(context=context)}]
         messages.extend(self.chat_history)
         messages.append({"role": "user", "content": query})
+
+        # Count tokens before sending
+        token_count = self._count_tokens(messages)
+        token_limit = 128000  # gpt-4o-mini context window
+        print(f"📊 Tokens in prompt: {token_count:,} / {token_limit:,} ({token_count / token_limit * 100:.1f}%)")
+
+        if token_count > token_limit * 0.8:  # warn at 80%
+            print("⚠️  Approaching token limit — consider summarizing history")
 
         # Generate answer
         response = self.llm.invoke(messages)

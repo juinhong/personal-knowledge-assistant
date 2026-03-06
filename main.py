@@ -79,5 +79,31 @@ def main():
         print()
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
+# Add this temporary test at the bottom of main.py
+if __name__ == "__main__" and "--test-tokens" in sys.argv:
+    from src.retriever import load_vectorstore
+    from src.rag import RAGPipeline
+
+    vectorstore = load_vectorstore()
+    rag = RAGPipeline(vectorstore)
+
+    # Simulate a long conversation
+    questions = [
+        "what are the three container types in Roaring Bitmaps?",
+        "explain array containers in detail",
+        "what about bitmap containers?",
+        "and run containers?",
+        "how do AND operations work?",
+        "what about OR operations?",
+        "summarize all set operations",
+        "what are the best practices?",
+    ]
+
+    for q in questions:
+        print(f"\n{'=' * 50}")
+        result = rag.ask(q)
+        print(f"🤖 {result['answer'][:100]}...")
+        print(f"💬 History length: {len(rag.chat_history)} messages")
