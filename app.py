@@ -1,14 +1,17 @@
+import os
+import tempfile
+
 import streamlit as st
 from dotenv import load_dotenv
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
+
+from src.ingest import chunk_documents, build_vectorstore
 from src.retriever import load_vectorstore
 from src.rag import RAGPipeline
-from src.ingest import chunk_documents, build_vectorstore
-from langchain_community.document_loaders import PyPDFLoader, TextLoader
-import tempfile
-import os
 
 load_dotenv()
 
+# --- Page config ---
 st.set_page_config(
     page_title="Personal Knowledge Assistant",
     page_icon="🤖",
@@ -16,6 +19,29 @@ st.set_page_config(
 )
 
 st.title("🤖 Personal Knowledge Assistant")
+
+
+# --- Helper ---
+def render_sources(sources: str):
+    """Render sources in a clean expandable block."""
+    if not sources:
+        return
+
+    with st.expander("📄 View sources", expanded=False):
+        source_lines = [s for s in sources.strip().split("\n") if s.strip()]
+
+        for line in source_lines:
+            if "→" in line:
+                parts = line.split("]", 1)
+                if len(parts) == 2:
+                    filename = parts[0].split("[")[-1]
+                    preview = parts[1].strip().rstrip("...")
+                    st.markdown(f"**📄 {filename}**")
+                    st.caption(preview)
+                    st.divider()
+                else:
+                    st.text(line)
+
 
 # --- Sidebar ---
 with st.sidebar:
@@ -25,7 +51,7 @@ with st.sidebar:
     try:
         vs = load_vectorstore()
         st.success(f"{vs._collection.count()} chunks loaded")
-    except:
+    except Exception:
         st.warning("No knowledge base found")
 
     st.divider()
@@ -43,13 +69,11 @@ with st.sidebar:
             all_docs = []
 
             for uploaded_file in uploaded_files:
-                # Save to temp file so loaders can read it
                 suffix = ".pdf" if uploaded_file.name.endswith(".pdf") else ".txt"
                 with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                     tmp.write(uploaded_file.read())
                     tmp_path = tmp.name
 
-                # Load using appropriate loader
                 if suffix == ".pdf":
                     loader = PyPDFLoader(tmp_path)
                 else:
@@ -57,18 +81,15 @@ with st.sidebar:
 
                 docs = loader.load()
 
-                # Fix metadata to show original filename
                 for doc in docs:
                     doc.metadata["source"] = uploaded_file.name
 
                 all_docs.extend(docs)
-                os.unlink(tmp_path)  # clean up temp file
+                os.unlink(tmp_path)
 
-            # Chunk and store
             chunks = chunk_documents(all_docs)
             build_vectorstore(chunks)
 
-            # Reset RAG pipeline so it picks up new docs
             if "rag" in st.session_state:
                 del st.session_state["rag"]
 
@@ -84,33 +105,34 @@ with st.sidebar:
             st.session_state.rag.reset()
         st.rerun()
 
-# --- Main chat ---
+# --- Init RAG pipeline ---
 if "rag" not in st.session_state:
     with st.spinner("Loading knowledge base..."):
         try:
             vectorstore = load_vectorstore()
             st.session_state.rag = RAGPipeline(vectorstore)
-        except:
+        except Exception:
             st.info("👈 Upload documents in the sidebar to get started.")
             st.stop()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Render conversation history
+# --- Render conversation history ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
-        if msg.get("sources"):
-            with st.expander("📄 Sources"):
-                st.write(msg["sources"])
+        render_sources(msg.get("sources", ""))
 
-# Chat input
+# --- Chat input ---
 if prompt := st.chat_input("Ask anything from your knowledge base..."):
+
+    # Show user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
 
+    # Get and show assistant response
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             result = st.session_state.rag.ask(prompt, verbose=False)
@@ -118,9 +140,11 @@ if prompt := st.chat_input("Ask anything from your knowledge base..."):
         st.write(result["answer"])
 
         if result["sources"]:
-            with st.expander("📄 Sources"):
-                st.write(result["sources"])
+            render_sources(result["sources"])
+        else:
+            st.caption("⚠️ No relevant sources found in knowledge base")
 
+    # Save to history
     st.session_state.messages.append({
         "role": "assistant",
         "content": result["answer"],
