@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "question": "What are the three container types in Roaring Bitmaps?",
+    "expected": "Array Container, Bitmap Container, and Run Container",
+    "type": "factual"
+  },
+  {
+    "id": 2,
+    "question": "What is a Roaring Bitmap?",
+    "expected": "A compressed and optimized data structure for efficiently representing large sets of integers, using a hierarchical structure that adapts to varying data distributions",
+    "type": "conceptual"
+  },
+  {
+    "id": 3,
+    "question": "What is the Array Container ideal for?",
+    "expected": "Sparse ranges with fewer than 4096 elements",
+    "type": "factual"
+  },
+  {
+    "id": 4,
+    "question": "When should I use a Run Container?",
+    "expected": "For long consecutive sequences within the container's range",
+    "type": "decision"
+  },
+  {
+    "id": 5,
+    "question": "What are the two limitations of standard bitmaps?",
+    "expected": "Sparsity issues (mostly zeros for sparse data, wasting space) and set operation challenges (bitwise operations become less efficient for large, sparse sets)",
+    "type": "list"
+  },
+  {
+    "id": 6,
+    "question": "What are the four advantages of Roaring Bitmaps?",
+    "expected": "Exceptional space efficiency, lightning-fast set operations, wide applicability, and adaptive structure",
+    "type": "list"
+  },
+  {
+    "id": 7,
+    "question": "What set operations do Roaring Bitmaps support?",
+    "expected": "AND (intersection), OR (union), XOR (symmetric difference), and NOT (complement)",
+    "type": "list"
+  },
+  {
+    "id": 8,
+    "question": "When should I use hash sets instead of Roaring Bitmaps?",
+    "expected": "For very sparse data",
+    "type": "decision"
+  },
+  {
+    "id": 9,
+    "question": "What problem does Procella solve at YouTube?",
+    "expected": "It unifies serving and analytical data by building a single SQL query engine that handles reporting, dashboarding, embedded statistics, time-series monitoring, and ad-hoc analysis — replacing specialized infrastructure for each use case",
+    "type": "conceptual"
+  },
+  {
+    "id": 10,
+    "question": "What is the 32-bit integer limitation of Roaring Bitmaps?",
+    "expected": "Roaring Bitmaps are designed only for 32-bit integers. For other data types, you need to map your data to this range",
+    "type": "factual"
+  },
+  {
+    "id": 11,
+    "question": "What is the capital of France?",
+    "expected": "I don't have that information in my knowledge base.",
+    "type": "out_of_scope"
+  },
+  {
+    "id": 12,
+    "question": "Who is the CEO of OpenAI?",
+    "expected": "I don't have that information in my knowledge base.",
+    "type": "out_of_scope"
+  }
+]
