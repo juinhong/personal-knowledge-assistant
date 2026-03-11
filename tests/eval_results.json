@@ -1,0 +1,158 @@
+[
+  {
+    "id": 1,
+    "question": "What are the three container types in Roaring Bitmaps?",
+    "expected": "Array Container, Bitmap Container, and Run Container",
+    "actual": "The three container types in Roaring Bitmaps are:\n\n1. **Array Container**\n   - Structure: A sorted array storing individual integer values.\n   - Ideal for: Sparse ranges with fewer than 4096 elements.\n\n2. **Bitmap Container**\n   - Structure: A traditional bitmap using one bit per possible value.\n   - Ideal for: Dense ranges with a significant number of elements.\n\n3. **Run Container**\n   - Structure: Stores consecutive sequences of values using the start and length of the run.\n   - Ideal for: Long consecutive sequences within the container's range.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer correctly identifies and describes all three container types in Roaring Bitmaps without adding any false information."
+    }
+  },
+  {
+    "id": 2,
+    "question": "What is a Roaring Bitmap?",
+    "expected": "A compressed and optimized data structure for efficiently representing large sets of integers, using a hierarchical structure that adapts to varying data distributions",
+    "actual": "A Roaring Bitmap is a data structure that offers a compressed and optimized representation of a bitmap, addressing limitations of standard bitmaps. Key features include:\n\n- **Hierarchical Structure**: It adapts to varying data distributions.\n- **Efficiency**: Provides significant space savings and faster operations compared to standard bitmaps.\n- **Two-Level Organization**:\n  - **Top Level**: A dynamic array of 16-bit integer keys corresponding to chunks of 2^16 integers.\n  - **Second Level**: Uses one of three container types to store the lower 16 bits of integers in each range.\n\nRoaring Bitmaps are particularly useful in data-intensive applications, such as databases, data warehousing, and search engines.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer accurately reflects the expected answer's key facts and provides additional relevant details without introducing any false information."
+    }
+  },
+  {
+    "id": 3,
+    "question": "What is the Array Container ideal for?",
+    "expected": "Sparse ranges with fewer than 4096 elements",
+    "actual": "- Ideal for: Sparse ranges with fewer than 4096 elements.\n- Example: The set {1, 10, 1000} within the container 0\u201365535.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer correctly states the ideal use case and provides an appropriate example without adding any false information."
+    }
+  },
+  {
+    "id": 4,
+    "question": "When should I use a Run Container?",
+    "expected": "For long consecutive sequences within the container's range",
+    "actual": "You should use a Run Container when:\n\n- There are long consecutive sequences of values within the container's range.\n- You want to efficiently store data like a set of consecutive integers (e.g., {10, 11, 12, 13, 14, 15} can be stored as a single run with start=10 and length=6).",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer correctly addresses the question by including the key fact about long consecutive sequences and provides an additional relevant example without introducing any false information."
+    }
+  },
+  {
+    "id": 5,
+    "question": "What are the two limitations of standard bitmaps?",
+    "expected": "Sparsity issues (mostly zeros for sparse data, wasting space) and set operation challenges (bitwise operations become less efficient for large, sparse sets)",
+    "actual": "The two limitations of standard bitmaps are:\n\n1. **Sparsity Issues**: They can be mostly zeros if the data is sparse, wasting space.\n2. **Set Operation Challenges**: Bitwise operations become less efficient for large, sparse sets.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer accurately reflects the key facts and important points from the expected answer without adding any false information."
+    }
+  },
+  {
+    "id": 6,
+    "question": "What are the four advantages of Roaring Bitmaps?",
+    "expected": "Exceptional space efficiency, lightning-fast set operations, wide applicability, and adaptive structure",
+    "actual": "1. Exceptional Space Efficiency: Significant space savings, especially for sparse and clustered data.\n2. Lightning-Fast Set Operations: Rapid intersection, union, and difference operations, outperforming traditional methods.\n3. Wide Applicability: Versatile for use in diverse domains and tasks.\n4. Adaptive Structure: Efficiently handles various data distributions through the use of different container types.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer accurately reflects all key points from the expected answer without adding any false information."
+    }
+  },
+  {
+    "id": 7,
+    "question": "What set operations do Roaring Bitmaps support?",
+    "expected": "AND (intersection), OR (union), XOR (symmetric difference), and NOT (complement)",
+    "actual": "Roaring Bitmaps support the following set operations:\n\n1. AND (Intersection)\n2. OR (Union)\n3. XOR (Symmetric Difference)\n4. NOT (Complement)",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer accurately lists all the set operations supported by Roaring Bitmaps as stated in the expected answer without any additional false information."
+    }
+  },
+  {
+    "id": 8,
+    "question": "When should I use hash sets instead of Roaring Bitmaps?",
+    "expected": "For very sparse data",
+    "actual": "You should consider using hash sets instead of Roaring Bitmaps in the following situations:\n\n1. **Sparse Data**: If your data is very sparse (large gaps between values), traditional hash sets may be more efficient.\n2. **Uniform Distribution**: When the data has a uniform distribution, the benefits of compression in Roaring Bitmaps may diminish.\n3. **Data Types**: If your data consists of types other than 32-bit integers, you would need to map your data to this range for Roaring Bitmaps.",
+    "judgment": {
+      "score": 2,
+      "correctness": "pass",
+      "completeness": "partial",
+      "hallucination": "none",
+      "reason": "The actual answer correctly identifies sparse data as a situation for using hash sets, but it introduces additional points that are not part of the expected answer, leading to a partial completeness score."
+    }
+  },
+  {
+    "id": 9,
+    "question": "What problem does Procella solve at YouTube?",
+    "expected": "It unifies serving and analytical data by building a single SQL query engine that handles reporting, dashboarding, embedded statistics, time-series monitoring, and ad-hoc analysis \u2014 replacing specialized infrastructure for each use case",
+    "actual": "Procella solves the following problems at YouTube:\n\n- Addresses exploding data volume and increasing demand for data-driven applications.\n- Eliminates silos of data and processing created by specialized infrastructure for different use cases.\n- Simplifies infrastructure, making it less complex, less expensive, and easier to maintain.\n- Provides a unified SQL query engine that supports reporting and dashboarding, embedded statistics, time-series monitoring, and ad-hoc analysis in a single product.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer accurately reflects the expected answer by including all key facts and does not introduce any false information."
+    }
+  },
+  {
+    "id": 10,
+    "question": "What is the 32-bit integer limitation of Roaring Bitmaps?",
+    "expected": "Roaring Bitmaps are designed only for 32-bit integers. For other data types, you need to map your data to this range",
+    "actual": "- Roaring Bitmaps are designed for 32-bit integers.\n- For other data types, you need to map your data to the 32-bit integer range.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer accurately reflects the key facts and important points from the expected answer without adding any false information."
+    }
+  },
+  {
+    "id": 11,
+    "question": "What is the capital of France?",
+    "expected": "I don't have that information in my knowledge base.",
+    "actual": "I don't have any relevant information about that in my knowledge base.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer correctly conveys the lack of information about the capital of France without adding any false information."
+    }
+  },
+  {
+    "id": 12,
+    "question": "Who is the CEO of OpenAI?",
+    "expected": "I don't have that information in my knowledge base.",
+    "actual": "I don't have any relevant information about that in my knowledge base.",
+    "judgment": {
+      "score": 3,
+      "correctness": "pass",
+      "completeness": "pass",
+      "hallucination": "none",
+      "reason": "The actual answer accurately reflects the expected answer without adding any false information."
+    }
+  }
+]
