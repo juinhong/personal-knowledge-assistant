@@ -9,6 +9,10 @@ from src.ingest import chunk_documents, build_vectorstore
 from src.retriever import load_vectorstore
 from src.rag import RAGPipeline
 
+# Works both locally (.env) and on Streamlit Cloud (secrets)
+if "OPENAI_API_KEY" in st.secrets:
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+
 load_dotenv()
 
 # --- Page config ---
